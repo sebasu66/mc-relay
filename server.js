@@ -21,16 +21,30 @@ app.post("/register", (req, res) => {
   res.json({ ok: true });
 });
 
+Editá server.js y reemplazá solo el handler del proxy por este (es corto y seguro):
+
 app.use("/minecraft/:sessionId/*", async (req, res) => {
   const { sessionId } = req.params;
-  const tunnelUrl = sessions.get(sessionId);
 
-  if (!tunnelUrl) {
-    return res.status(404).json({ error: "Session not found" });
+  const tunnelUrlRaw = sessions.get(sessionId);
+  if (!tunnelUrlRaw) return res.status(404).json({ error: "Session not found" });
+
+  let base;
+  try {
+    base = new URL(tunnelUrlRaw).origin; // asegura que sea solo https://host
+  } catch {
+    return res.status(400).json({ error: "Bad tunnelUrl stored" });
   }
 
-  const path = req.originalUrl.replace(/minecraft/, "");
-  const target = tunnelUrl + path;
+  // Parte capturada por el wildcard (*) en Express
+  const restPath = req.params[0] ? `/${req.params[0]}` : "/";
+
+  // Conserva querystring si existe
+  const qsIndex = req.originalUrl.indexOf("?");
+  const qs = qsIndex >= 0 ? req.originalUrl.substring(qsIndex) : "";
+
+  const target = new URL(restPath + qs, base).toString();
+  console.log("[relay] ->", target);
 
   try {
     const response = await fetch(target, {
