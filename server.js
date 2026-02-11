@@ -21,8 +21,6 @@ app.post("/register", (req, res) => {
   res.json({ ok: true });
 });
 
-Editá server.js y reemplazá solo el handler del proxy por este (es corto y seguro):
-
 app.use("/minecraft/:sessionId/*", async (req, res) => {
   const { sessionId } = req.params;
 
